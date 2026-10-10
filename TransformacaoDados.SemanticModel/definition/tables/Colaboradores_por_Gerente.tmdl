@@ -1,0 +1,41 @@
+table Colaboradores_por_Gerente
+	lineageTag: 674f2446-b5e5-4a73-a2a4-c76df8427975
+
+	column 'SSN Gerente'
+		dataType: string
+		lineageTag: e1e44637-65cd-4b19-bad5-c860779f1c56
+		summarizeBy: none
+		sourceColumn: SSN Gerente
+
+		annotation SummarizationSetBy = Automatic
+
+	column Gerente
+		dataType: string
+		lineageTag: 7e4f5dc1-a692-4d85-869d-cb75c715355a
+		summarizeBy: none
+		sourceColumn: Gerente
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Qtd Colaboradores'
+		dataType: int64
+		formatString: 0
+		lineageTag: 7f2c34fb-e4db-42aa-8ff8-bdb5ffd2b59e
+		summarizeBy: sum
+		sourceColumn: Qtd Colaboradores
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Colaboradores_por_Gerente = m
+		mode: import
+		source =
+				let
+				    Fonte = Colaboradores,
+				    // Desconsidera o colaborador sem gerente para contar apenas subordinados
+				    ComGerente = Table.SelectRows(Fonte, each [SSN Gerente] <> null),
+				    Agrupado = Table.Group(ComGerente, {"SSN Gerente", "Gerente"}, {{"Qtd Colaboradores", each Table.RowCount(_), Int64.Type}}),
+				    Ordenado = Table.Sort(Agrupado, {{"Qtd Colaboradores", Order.Descending}, {"Gerente", Order.Ascending}})
+				in
+				    Ordenado
+
+	annotation PBI_ResultType = Table

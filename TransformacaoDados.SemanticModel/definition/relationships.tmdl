@@ -1,0 +1,19 @@
+relationship 6fc61258-67e2-4e15-b6c2-b4a80bc624ec
+	fromColumn: Colaboradores.'Nº Departamento'
+	toColumn: Departamentos.'Nº Departamento'
+
+relationship 570280d6-5351-4775-a1db-9031dcbe8fc3
+	fromColumn: Departamento_Local.'Nº Departamento'
+	toColumn: Departamentos.'Nº Departamento'
+
+relationship 8776b48b-925c-48a3-82a0-f93d5fbb58e8
+	fromColumn: Trabalha_Em.'SSN Colaborador'
+	toColumn: Colaboradores.SSN
+
+relationship 32589bb6-0887-4d34-b5c5-37ebf380e70b
+	fromColumn: Trabalha_Em.'Nº Projeto'
+	toColumn: Projetos.'Nº Projeto'
+
+relationship 586387d1-d77e-4e07-ad34-d3d46af44bc2
+	fromColumn: Dependentes.'SSN Colaborador'
+	toColumn: Colaboradores.SSN

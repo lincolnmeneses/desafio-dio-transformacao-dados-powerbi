@@ -1,0 +1,20 @@
+model Model
+	culture: pt-BR
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: pt-BR
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation PBI_QueryOrder = ["PastaDados","employee_raw","departament_raw","dept_locations_raw","project_raw","works_on_raw","dependent_raw","nomes_colaboradores","Colaboradores","Departamentos","Departamento_Local","Projetos","Trabalha_Em","Dependentes","Colaboradores_por_Gerente","Medidas"]
+
+ref table Colaboradores
+ref table Departamentos
+ref table Departamento_Local
+ref table Projetos
+ref table Trabalha_Em
+ref table Dependentes
+ref table Colaboradores_por_Gerente
+ref table Medidas

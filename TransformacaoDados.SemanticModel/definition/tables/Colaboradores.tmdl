@@ -1,0 +1,147 @@
+table Colaboradores
+	lineageTag: 2da356dd-2a3c-451b-8f8b-f8e775b8e980
+
+	column SSN
+		dataType: string
+		lineageTag: de3c8088-5dbd-46bc-81e4-712740bd7194
+		summarizeBy: none
+		sourceColumn: SSN
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Nome Completo'
+		dataType: string
+		lineageTag: e4e9c1e0-cf63-4793-bd17-3da67bf46fb8
+		summarizeBy: none
+		sourceColumn: Nome Completo
+
+		annotation SummarizationSetBy = Automatic
+
+	column Sexo
+		dataType: string
+		lineageTag: b89d374d-e39a-43d2-83f3-bff6ab41c2a9
+		summarizeBy: none
+		sourceColumn: Sexo
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Data Nascimento'
+		dataType: dateTime
+		formatString: dd/mm/yyyy
+		lineageTag: 58879e03-8ceb-4205-a79c-9976c009d7ec
+		summarizeBy: none
+		sourceColumn: Data Nascimento
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Salário'
+		dataType: decimal
+		formatString: \$#,0.00;(\$#,0.00);\$#,0.00
+		lineageTag: 77b27867-b0bf-4692-89dd-0bfd4c7fbd47
+		summarizeBy: sum
+		sourceColumn: Salário
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	column 'Número'
+		dataType: string
+		lineageTag: e79d9216-8c90-46b7-af01-6cd497b4cfa8
+		summarizeBy: none
+		sourceColumn: Número
+
+		annotation SummarizationSetBy = Automatic
+
+	column Rua
+		dataType: string
+		lineageTag: 637ffd4c-c5c6-4e08-b4d0-171106fb0079
+		summarizeBy: none
+		sourceColumn: Rua
+
+		annotation SummarizationSetBy = Automatic
+
+	column Cidade
+		dataType: string
+		lineageTag: 02698c7f-c40b-4b37-b0b6-1cb85080a33c
+		summarizeBy: none
+		sourceColumn: Cidade
+
+		annotation SummarizationSetBy = Automatic
+
+	column Estado
+		dataType: string
+		dataCategory: StateOrProvince
+		lineageTag: 4a9c185c-7610-4947-8c70-2ebd2f32ad03
+		summarizeBy: none
+		sourceColumn: Estado
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Nº Departamento'
+		dataType: int64
+		formatString: 0
+		lineageTag: 85688335-0249-4cb6-bcdf-1c85ad453e4c
+		summarizeBy: none
+		sourceColumn: Nº Departamento
+
+		annotation SummarizationSetBy = Automatic
+
+	column Departamento
+		dataType: string
+		lineageTag: f20e65c6-b079-490a-910a-08e53d0e548b
+		summarizeBy: none
+		sourceColumn: Departamento
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'SSN Gerente'
+		dataType: string
+		lineageTag: 3faf226f-6823-46e1-89f6-5e05d3b742d8
+		summarizeBy: none
+		sourceColumn: SSN Gerente
+
+		annotation SummarizationSetBy = Automatic
+
+	column Gerente
+		dataType: string
+		lineageTag: 7703a487-51f1-4584-8604-918d69c11531
+		summarizeBy: none
+		sourceColumn: Gerente
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Colaboradores = m
+		mode: import
+		source =
+				let
+				    Fonte = employee_raw,
+				    VaziosParaNulo = Table.ReplaceValue(Fonte, "", null, Replacer.ReplaceValue, {"Minit", "Bdate", "Address", "Sex", "Salary", "Super_ssn"}),
+				    // Salário como número decimal fixo (Currency.Type), o tipo preciso para valores monetários
+				    TiposAlterados = Table.TransformColumnTypes(VaziosParaNulo, {{"Fname", type text}, {"Minit", type text}, {"Lname", type text}, {"Ssn", type text}, {"Bdate", type date}, {"Address", type text}, {"Sex", type text}, {"Salary", Currency.Type}, {"Super_ssn", type text}, {"Dno", Int64.Type}}, "en-US"),
+				    // Coluna complexa: o endereço vem como Número-Rua-Cidade-Estado e a rua pode ter hífen (ex.: 975-Fire-Oak-Humble-TX)
+				    PartesEndereco = Table.AddColumn(TiposAlterados, "PartesEndereco", each Text.Split([Address], "-")),
+				    Numero = Table.AddColumn(PartesEndereco, "Número", each List.First([PartesEndereco]), type text),
+				    Rua = Table.AddColumn(Numero, "Rua", each Text.Combine(List.Range([PartesEndereco], 1, List.Count([PartesEndereco]) - 3), " "), type text),
+				    Cidade = Table.AddColumn(Rua, "Cidade", each [PartesEndereco]{List.Count([PartesEndereco]) - 2}, type text),
+				    Estado = Table.AddColumn(Cidade, "Estado", each List.Last([PartesEndereco]), type text),
+				    // Nome + Sobrenome em uma única coluna
+				    NomeCompleto = Table.CombineColumns(Estado, {"Fname", "Lname"}, Combiner.CombineTextByDelimiter(" ", QuoteStyle.None), "Nome Completo"),
+				    // Autojunção: nome do gerente de cada colaborador (Super_ssn = Ssn)
+				    MesclaGerente = Table.NestedJoin(NomeCompleto, {"Super_ssn"}, nomes_colaboradores, {"Ssn"}, "TabelaGerente", JoinKind.LeftOuter),
+				    GerenteExpandido = Table.ExpandTableColumn(MesclaGerente, "TabelaGerente", {"Nome"}, {"Gerente"}),
+				    // Super_ssn nulo = colaborador sem gerente (topo da hierarquia). A linha é mantida e identificada
+				    SemGerente = Table.ReplaceValue(GerenteExpandido, null, "Sem gerente (diretor)", Replacer.ReplaceValue, {"Gerente"}),
+				    // Mescla com departamentos usando junção externa esquerda: a base é employee e todos os colaboradores são mantidos
+				    MesclaDepartamento = Table.NestedJoin(SemGerente, {"Dno"}, Departamentos, {"Nº Departamento"}, "TabelaDepartamento", JoinKind.LeftOuter),
+				    DepartamentoExpandido = Table.ExpandTableColumn(MesclaDepartamento, "TabelaDepartamento", {"Departamento"}, {"Departamento"}),
+				    Renomeadas = Table.RenameColumns(DepartamentoExpandido, {{"Ssn", "SSN"}, {"Bdate", "Data Nascimento"}, {"Sex", "Sexo"}, {"Salary", "Salário"}, {"Super_ssn", "SSN Gerente"}, {"Dno", "Nº Departamento"}}),
+				    TiposFinais = Table.TransformColumnTypes(Renomeadas, {{"Nome Completo", type text}, {"Gerente", type text}, {"Departamento", type text}}),
+				    // Remove colunas desnecessárias (Minit, Address e a lista auxiliar PartesEndereco)
+				    ColunasFinais = Table.SelectColumns(TiposFinais, {"SSN", "Nome Completo", "Sexo", "Data Nascimento", "Salário", "Número", "Rua", "Cidade", "Estado", "Nº Departamento", "Departamento", "SSN Gerente", "Gerente"})
+				in
+				    ColunasFinais
+
+	annotation PBI_ResultType = Table

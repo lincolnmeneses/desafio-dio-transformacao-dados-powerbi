@@ -1,0 +1,75 @@
+expression PastaDados = "C:\Users\Lincoln\Documents\desafio-dio-transformacao-dados-powerbi\dados\" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: 857c6fee-b9ae-4092-bb4d-62020c2c64dd
+
+	annotation PBI_ResultType = Text
+
+expression employee_raw =
+		let
+		    Fonte = Csv.Document(File.Contents(PastaDados & "employee.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+		    CabecalhosPromovidos = Table.PromoteHeaders(Fonte, [PromoteAllScalars = true])
+		in
+		    CabecalhosPromovidos
+	lineageTag: a71374f1-a494-4dde-9d95-de10ec0a1be4
+
+	annotation PBI_ResultType = Table
+
+expression departament_raw =
+		let
+		    Fonte = Csv.Document(File.Contents(PastaDados & "departament.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+		    CabecalhosPromovidos = Table.PromoteHeaders(Fonte, [PromoteAllScalars = true])
+		in
+		    CabecalhosPromovidos
+	lineageTag: e3681572-de48-4f5e-b45c-4fbbf8459bd9
+
+	annotation PBI_ResultType = Table
+
+expression dept_locations_raw =
+		let
+		    Fonte = Csv.Document(File.Contents(PastaDados & "dept_locations.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+		    CabecalhosPromovidos = Table.PromoteHeaders(Fonte, [PromoteAllScalars = true])
+		in
+		    CabecalhosPromovidos
+	lineageTag: e21c7d27-bec5-4080-a8f9-6831e5cc21ef
+
+	annotation PBI_ResultType = Table
+
+expression project_raw =
+		let
+		    Fonte = Csv.Document(File.Contents(PastaDados & "project.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+		    CabecalhosPromovidos = Table.PromoteHeaders(Fonte, [PromoteAllScalars = true])
+		in
+		    CabecalhosPromovidos
+	lineageTag: 45334f26-7031-443f-951a-3d259e4aa7de
+
+	annotation PBI_ResultType = Table
+
+expression works_on_raw =
+		let
+		    Fonte = Csv.Document(File.Contents(PastaDados & "works_on.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+		    CabecalhosPromovidos = Table.PromoteHeaders(Fonte, [PromoteAllScalars = true])
+		in
+		    CabecalhosPromovidos
+	lineageTag: a5ac5254-71dc-4476-9197-f2fb5e89221a
+
+	annotation PBI_ResultType = Table
+
+expression dependent_raw =
+		let
+		    Fonte = Csv.Document(File.Contents(PastaDados & "dependent.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+		    CabecalhosPromovidos = Table.PromoteHeaders(Fonte, [PromoteAllScalars = true])
+		in
+		    CabecalhosPromovidos
+	lineageTag: b90e7c50-3300-4f7b-8d75-4162a7eeb033
+
+	annotation PBI_ResultType = Table
+
+expression nomes_colaboradores =
+		let
+		    Fonte = employee_raw,
+		    Selecionadas = Table.SelectColumns(Fonte, {"Ssn", "Fname", "Lname"}),
+		    NomeMesclado = Table.CombineColumns(Selecionadas, {"Fname", "Lname"}, Combiner.CombineTextByDelimiter(" ", QuoteStyle.None), "Nome")
+		in
+		    NomeMesclado
+	lineageTag: 272d0c94-cdf2-4672-bb90-7936a1d16717
+
+	annotation PBI_ResultType = Table

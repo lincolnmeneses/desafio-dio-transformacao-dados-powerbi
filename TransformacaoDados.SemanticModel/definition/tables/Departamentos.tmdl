@@ -1,0 +1,76 @@
+table Departamentos
+	lineageTag: de2d2903-a54e-42c0-8ac1-4a03dc98f54d
+
+	column 'Nº Departamento'
+		dataType: int64
+		formatString: 0
+		lineageTag: 64534712-6b2b-40e3-8af7-4ed74bd640c1
+		summarizeBy: none
+		sourceColumn: Nº Departamento
+
+		annotation SummarizationSetBy = Automatic
+
+	column Departamento
+		dataType: string
+		lineageTag: 70df3ddf-35c4-42d9-a466-2ce1c62cb451
+		summarizeBy: none
+		sourceColumn: Departamento
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'SSN Gerente'
+		dataType: string
+		lineageTag: 63a5a2af-c811-4c9b-af75-6108ee8e6365
+		summarizeBy: none
+		sourceColumn: SSN Gerente
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Gerente do Departamento'
+		dataType: string
+		lineageTag: 5a3dccd8-ba65-4ca5-959f-cc201eda8e67
+		summarizeBy: none
+		sourceColumn: Gerente do Departamento
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Gerente Desde'
+		dataType: dateTime
+		formatString: dd/mm/yyyy
+		lineageTag: ac845a49-5dc4-4547-a074-8b3e57d53006
+		summarizeBy: none
+		sourceColumn: Gerente Desde
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Possui Gerente'
+		dataType: string
+		lineageTag: 9e0d4e58-8b62-4dad-806b-486df65bf563
+		summarizeBy: none
+		sourceColumn: Possui Gerente
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Departamentos = m
+		mode: import
+		source =
+				let
+				    Fonte = departament_raw,
+				    VaziosParaNulo = Table.ReplaceValue(Fonte, "", null, Replacer.ReplaceValue, {"Mgr_ssn", "Mgr_start_date", "Dept_create_date"}),
+				    TiposAlterados = Table.TransformColumnTypes(VaziosParaNulo, {{"Dname", type text}, {"Dnumber", Int64.Type}, {"Mgr_ssn", type text}, {"Mgr_start_date", type date}, {"Dept_create_date", type date}}, "en-US"),
+				    // Nome do gerente de cada departamento (Mgr_ssn = Ssn)
+				    MesclaGerente = Table.NestedJoin(TiposAlterados, {"Mgr_ssn"}, nomes_colaboradores, {"Ssn"}, "TabelaGerente", JoinKind.LeftOuter),
+				    GerenteExpandido = Table.ExpandTableColumn(MesclaGerente, "TabelaGerente", {"Nome"}, {"Gerente do Departamento"}),
+				    // Verificação de departamentos sem gerente; se existir algum, a lacuna é preenchida
+				    PossuiGerente = Table.AddColumn(GerenteExpandido, "Possui Gerente", each if [Mgr_ssn] = null then "Não" else "Sim", type text),
+				    LacunasPreenchidas = Table.ReplaceValue(PossuiGerente, null, "Gerente a definir", Replacer.ReplaceValue, {"Gerente do Departamento"}),
+				    Renomeadas = Table.RenameColumns(LacunasPreenchidas, {{"Dnumber", "Nº Departamento"}, {"Dname", "Departamento"}, {"Mgr_ssn", "SSN Gerente"}, {"Mgr_start_date", "Gerente Desde"}}),
+				    TiposFinais = Table.TransformColumnTypes(Renomeadas, {{"Gerente do Departamento", type text}}),
+				    // Dept_create_date não é usada no relatório e foi removida
+				    ColunasFinais = Table.SelectColumns(TiposFinais, {"Nº Departamento", "Departamento", "SSN Gerente", "Gerente do Departamento", "Gerente Desde", "Possui Gerente"})
+				in
+				    ColunasFinais
+
+	annotation PBI_ResultType = Table

@@ -1,0 +1,83 @@
+table Projetos
+	lineageTag: 1ea17580-2ae9-496a-acf7-f6d598c3d9bd
+
+	column 'Nº Projeto'
+		dataType: int64
+		formatString: 0
+		lineageTag: 3a7187bc-93b8-4971-9d58-919ba71c1902
+		summarizeBy: none
+		sourceColumn: Nº Projeto
+
+		annotation SummarizationSetBy = Automatic
+
+	column Projeto
+		dataType: string
+		lineageTag: e5e54038-6319-4d73-bf13-2f235e15bc1a
+		summarizeBy: none
+		sourceColumn: Projeto
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Local do Projeto'
+		dataType: string
+		dataCategory: City
+		lineageTag: a3cc9c1d-df73-449f-8853-ab003599cd1c
+		summarizeBy: none
+		sourceColumn: Local do Projeto
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Nº Departamento'
+		dataType: int64
+		formatString: 0
+		lineageTag: 41085fd4-36ae-4bc6-8c7c-ab64fa8cf8f8
+		summarizeBy: none
+		sourceColumn: Nº Departamento
+
+		annotation SummarizationSetBy = Automatic
+
+	column Departamento
+		dataType: string
+		lineageTag: 02488f72-e82f-47bd-bcb4-d6e2b6196d1c
+		summarizeBy: none
+		sourceColumn: Departamento
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Total de Horas'
+		dataType: double
+		formatString: #,0.0
+		lineageTag: 609734a9-ffaa-43c2-9113-14fb30e77c58
+		summarizeBy: sum
+		sourceColumn: Total de Horas
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Qtd Colaboradores'
+		dataType: int64
+		formatString: 0
+		lineageTag: 99a83f62-6f5f-4312-8859-790fbd999d7a
+		summarizeBy: sum
+		sourceColumn: Qtd Colaboradores
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Projetos = m
+		mode: import
+		source =
+				let
+				    Fonte = project_raw,
+				    TiposAlterados = Table.TransformColumnTypes(Fonte, {{"Pname", type text}, {"Pnumber", Int64.Type}, {"Plocation", type text}, {"Dnum", Int64.Type}}, "en-US"),
+				    // Verificação das horas: total de horas e quantidade de colaboradores em cada projeto
+				    HorasPorProjeto = Table.Group(Trabalha_Em, {"Nº Projeto"}, {{"Total de Horas", each List.Sum([Horas]), type number}, {"Qtd Colaboradores", each Table.RowCount(_), Int64.Type}}),
+				    MesclaHoras = Table.NestedJoin(TiposAlterados, {"Pnumber"}, HorasPorProjeto, {"Nº Projeto"}, "TabelaHoras", JoinKind.LeftOuter),
+				    HorasExpandidas = Table.ExpandTableColumn(MesclaHoras, "TabelaHoras", {"Total de Horas", "Qtd Colaboradores"}, {"Total de Horas", "Qtd Colaboradores"}),
+				    MesclaDepartamento = Table.NestedJoin(HorasExpandidas, {"Dnum"}, Departamentos, {"Nº Departamento"}, "TabelaDepartamento", JoinKind.LeftOuter),
+				    DepartamentoExpandido = Table.ExpandTableColumn(MesclaDepartamento, "TabelaDepartamento", {"Departamento"}, {"Departamento"}),
+				    Renomeadas = Table.RenameColumns(DepartamentoExpandido, {{"Pname", "Projeto"}, {"Pnumber", "Nº Projeto"}, {"Plocation", "Local do Projeto"}, {"Dnum", "Nº Departamento"}}),
+				    TiposFinais = Table.TransformColumnTypes(Renomeadas, {{"Total de Horas", type number}, {"Qtd Colaboradores", Int64.Type}, {"Departamento", type text}}),
+				    ColunasFinais = Table.SelectColumns(TiposFinais, {"Nº Projeto", "Projeto", "Local do Projeto", "Nº Departamento", "Departamento", "Total de Horas", "Qtd Colaboradores"})
+				in
+				    ColunasFinais
+
+	annotation PBI_ResultType = Table

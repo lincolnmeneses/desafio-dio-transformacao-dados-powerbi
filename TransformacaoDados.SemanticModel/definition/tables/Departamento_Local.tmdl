@@ -1,0 +1,65 @@
+table Departamento_Local
+	lineageTag: 7d81e2f7-1162-4159-91df-c130066c4dd6
+
+	column 'ID Departamento-Local'
+		dataType: int64
+		formatString: 0
+		lineageTag: 4c6d5e52-c0ad-42b4-a5bd-43dc2046d619
+		summarizeBy: none
+		sourceColumn: ID Departamento-Local
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Nº Departamento'
+		dataType: int64
+		formatString: 0
+		lineageTag: 80e39c62-c7f0-46d2-8abc-47bb1e9624b8
+		summarizeBy: none
+		sourceColumn: Nº Departamento
+
+		annotation SummarizationSetBy = Automatic
+
+	column Departamento
+		dataType: string
+		lineageTag: 8001d682-437b-471c-9cd9-0b79c9fc9af4
+		summarizeBy: none
+		sourceColumn: Departamento
+
+		annotation SummarizationSetBy = Automatic
+
+	column Local
+		dataType: string
+		dataCategory: City
+		lineageTag: c0d19929-8004-4f66-a96c-c1f6343285cb
+		summarizeBy: none
+		sourceColumn: Local
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Departamento-Local'
+		dataType: string
+		lineageTag: 483e7215-9a66-4762-9174-32d37e9a7b30
+		summarizeBy: none
+		sourceColumn: Departamento-Local
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Departamento_Local = m
+		mode: import
+		source =
+				let
+				    Fonte = dept_locations_raw,
+				    TiposAlterados = Table.TransformColumnTypes(Fonte, {{"Dnumber", Int64.Type}, {"Dlocation", type text}}, "en-US"),
+				    MesclaDepartamento = Table.NestedJoin(TiposAlterados, {"Dnumber"}, Departamentos, {"Nº Departamento"}, "TabelaDepartamento", JoinKind.LeftOuter),
+				    DepartamentoExpandido = Table.ExpandTableColumn(MesclaDepartamento, "TabelaDepartamento", {"Departamento"}, {"Departamento"}),
+				    // Nome do departamento + local: cada combinação departamento-local fica única (base para o modelo estrela)
+				    DepartamentoLocal = Table.AddColumn(DepartamentoExpandido, "Departamento-Local", each Text.Combine({[Departamento], [Dlocation]}, " - "), type text),
+				    Ordenado = Table.Sort(DepartamentoLocal, {{"Dnumber", Order.Ascending}, {"Dlocation", Order.Ascending}}),
+				    Indice = Table.AddIndexColumn(Ordenado, "ID Departamento-Local", 1, 1, Int64.Type),
+				    Renomeadas = Table.RenameColumns(Indice, {{"Dnumber", "Nº Departamento"}, {"Dlocation", "Local"}}),
+				    TiposFinais = Table.TransformColumnTypes(Renomeadas, {{"Departamento", type text}}),
+				    ColunasFinais = Table.SelectColumns(TiposFinais, {"ID Departamento-Local", "Nº Departamento", "Departamento", "Local", "Departamento-Local"})
+				in
+				    ColunasFinais
+
+	annotation PBI_ResultType = Table

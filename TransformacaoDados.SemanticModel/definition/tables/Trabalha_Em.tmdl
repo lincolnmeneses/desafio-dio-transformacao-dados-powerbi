@@ -1,0 +1,40 @@
+table Trabalha_Em
+	lineageTag: b5ff39be-7d9e-44f0-b628-6e40a3971d7b
+
+	column 'SSN Colaborador'
+		dataType: string
+		lineageTag: 11dce773-f509-48cf-b3f6-ac4a1d27db7a
+		summarizeBy: none
+		sourceColumn: SSN Colaborador
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Nº Projeto'
+		dataType: int64
+		formatString: 0
+		lineageTag: 7e8a1bb8-3386-4cf6-a418-bfd58ed2c389
+		summarizeBy: none
+		sourceColumn: Nº Projeto
+
+		annotation SummarizationSetBy = Automatic
+
+	column Horas
+		dataType: double
+		formatString: #,0.0
+		lineageTag: f9acbf08-122d-4e72-8922-50daa25a9da0
+		summarizeBy: sum
+		sourceColumn: Horas
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Trabalha_Em = m
+		mode: import
+		source =
+				let
+				    Fonte = works_on_raw,
+				    TiposAlterados = Table.TransformColumnTypes(Fonte, {{"Essn", type text}, {"Pno", Int64.Type}, {"Hours", type number}}, "en-US"),
+				    Renomeadas = Table.RenameColumns(TiposAlterados, {{"Essn", "SSN Colaborador"}, {"Pno", "Nº Projeto"}, {"Hours", "Horas"}})
+				in
+				    Renomeadas
+
+	annotation PBI_ResultType = Table

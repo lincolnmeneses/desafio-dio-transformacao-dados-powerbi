@@ -1,0 +1,49 @@
+table Medidas
+	lineageTag: d9b1e095-c266-4293-8448-6434512e5fb7
+
+	measure 'Total de Colaboradores' = COUNTROWS(Colaboradores)
+		formatString: #,0
+		lineageTag: e607a4ab-c5fb-497f-b9e9-8ae16ad3626f
+
+	measure 'Total de Departamentos' = COUNTROWS(Departamentos)
+		formatString: #,0
+		lineageTag: f0f765c7-2f27-4751-a93c-e7e152e30717
+
+	measure 'Total de Projetos' = COUNTROWS(Projetos)
+		formatString: #,0
+		lineageTag: 24677d1d-ffb6-4c73-b6fa-8eb5f243ea35
+
+	measure 'Horas Trabalhadas' = SUM(Trabalha_Em[Horas])
+		formatString: #,0.0
+		lineageTag: 2d890410-ce55-49dc-8832-3f296b71a9ed
+
+	measure 'Folha Salarial' = SUM(Colaboradores[Salário])
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: 6c6cda8e-e357-4d5c-9d70-eb238a7c476c
+
+	measure 'Subordinados por Gerente' = SUM(Colaboradores_por_Gerente[Qtd Colaboradores])
+		formatString: #,0
+		lineageTag: e01058e8-126d-430f-a9e9-b2c70b1999bc
+
+	measure 'Total de Dependentes' = COUNTROWS(Dependentes)
+		formatString: #,0
+		lineageTag: f9d428c6-7a2c-43b5-ac61-778963d25d36
+
+	column Coluna
+		dataType: string
+		isHidden
+		lineageTag: 59fd04b8-b701-4abc-bbc5-9ecc9ba6b913
+		summarizeBy: none
+		sourceColumn: Coluna
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Medidas = m
+		mode: import
+		source =
+				let
+				    Fonte = #table(type table [Coluna = text], {})
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table
